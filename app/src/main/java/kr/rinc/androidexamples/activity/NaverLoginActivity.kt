@@ -4,18 +4,17 @@ import android.annotation.SuppressLint
 import android.os.Bundle
 import android.util.Log
 import com.nhn.android.naverlogin.OAuthLogin
-import kotlinx.android.synthetic.main.activity_naver_login.*
 import kr.rinc.androidexamples.R
 import android.widget.Toast
 import com.nhn.android.naverlogin.OAuthLoginHandler
-
+import kotlinx.android.synthetic.main.activity_naver_login.*
 
 
 class NaverLoginActivity : BaseActivity() {
   private val mContext = this@NaverLoginActivity
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
-    setContentView(R.layout.activity_main)
+    setContentView(R.layout.activity_naver_login)
 
     naverLoginInit()
   }
@@ -58,8 +57,8 @@ class NaverLoginActivity : BaseActivity() {
       }
     }
 
-//    buttonOAuthLoginImg.setOnClickListener {
+    buttonOAuthLoginImg.setOnClickListener {
       mOAuthLoginModule.startOauthLoginActivity(mContext, mOAuthLoginHandler)
-//    }
+    }
   }
 }
