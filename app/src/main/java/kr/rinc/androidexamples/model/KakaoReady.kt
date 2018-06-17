@@ -9,4 +9,5 @@ class KakaoReady {
   val android_app_scheme = ""
   val ios_app_scheme = ""
   val created_at = ""
+  val pg_token = ""
 }

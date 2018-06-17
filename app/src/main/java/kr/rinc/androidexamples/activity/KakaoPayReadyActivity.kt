@@ -16,16 +16,15 @@ import android.content.Intent
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.net.Uri
-import android.webkit.WebChromeClient
 import android.webkit.WebView
+import java.net.URISyntaxException
 
 
 class KakaoPayReadyActivity : BaseActivity() {
   companion object {
-    val INTENT_PROTOCOL_START = "intent:"
-    val INTENT_PROTOCOL_INTENT = "#Intent;"
-    val INTENT_PROTOCOL_END = ";end;"
-    val GOOGLE_PLAY_STORE_PREFIX = "market://details?id="
+    val INTENT_URI_START = "intent:"
+    val INTENT_FALLBACK_URL = "browser_fallback_url"
+    val URI_SCHEME_MARKET = "market://details?id="
   }
   lateinit var context: Context
 
@@ -42,7 +41,7 @@ class KakaoPayReadyActivity : BaseActivity() {
         2200,
         200,
         0,
-        "http://localhost/success",
+        "http://52.79.60.204/success",
         "https://localhost/fail",
         "https://localhost/cancel")
         .enqueue(object : Callback<KakaoReady> {
@@ -52,7 +51,7 @@ class KakaoPayReadyActivity : BaseActivity() {
               response.body()!!.run {
                 ToastUtil.showShort(this@KakaoPayReadyActivity, "회원가입에 성공하셨습니다!")
                 Log.d("kakao", response.message())
-                webview.webChromeClient = WebChromeClient()
+                webview.webViewClient = MyWebViewClient()
                 val webSettings = webview.settings
                 webSettings.javaScriptEnabled = true
                 webSettings.allowContentAccess = true
@@ -60,7 +59,8 @@ class KakaoPayReadyActivity : BaseActivity() {
                 webSettings.databaseEnabled = true
                 webSettings.domStorageEnabled = true
                 webSettings.builtInZoomControls = true
-                webview.loadUrl(this.next_redirect_app_url)
+                Log.d("tid", this.next_redirect_app_url+"?tid="+this.tid)
+                webview.loadUrl(this.next_redirect_app_url+"?tid="+this.tid)
               }
             } else {
               ToastUtil.showShort(this@KakaoPayReadyActivity, "입력 값을 확인해주세요")
@@ -75,34 +75,43 @@ class KakaoPayReadyActivity : BaseActivity() {
   }
 
 
-//  inner class MyWebViewClient : WebViewClient() {
-//
-//    override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean {
-//      if (url.startsWith(INTENT_PROTOCOL_START)) {
-//        val customUrlStartIndex = INTENT_PROTOCOL_START.length
-//        val customUrlEndIndex = url.indexOf(INTENT_PROTOCOL_INTENT)
-//        if (customUrlEndIndex < 0) {
-//          return false
-//        } else {
-//          val customUrl = url.substring(customUrlStartIndex, customUrlEndIndex)
-//          try {
-//            Log.d("kakao", customUrl)
-//            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(customUrl)))
-//          } catch (e: ActivityNotFoundException) {
-//            Log.d("kakao", e.message)
-//            val packageStartIndex = customUrlEndIndex + INTENT_PROTOCOL_INTENT.length
-//            val packageEndIndex = url.indexOf(INTENT_PROTOCOL_END)
-//
-//            val packageName = url.substring(packageStartIndex, if (packageEndIndex < 0) url.length else packageEndIndex)
-//            Log.d("kakao", packageName)
-//            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(GOOGLE_PLAY_STORE_PREFIX + packageName)))
-//          }
-//
-//          return true
-//        }
-//      } else {
-//        return false
-//      }
-//    }
-//  }
+  inner class MyWebViewClient : WebViewClient() {
+
+    override fun shouldOverrideUrlLoading(view: WebView, uri: String): Boolean {
+      if (uri.toLowerCase().startsWith(INTENT_URI_START)) {
+        var parsedIntent: Intent? = null
+        try {
+          parsedIntent = Intent.parseUri(uri, 0)
+          startActivity(parsedIntent)
+        } catch (e: ActivityNotFoundException) {
+          return doFallback(view, parsedIntent)
+        } catch (e: URISyntaxException) {
+          return doFallback(view, parsedIntent)
+        }
+
+      } else {
+        view.loadUrl(uri)
+      }
+      return true
+    }
+
+    fun doFallback(view: WebView, parsedIntent: Intent?): Boolean {
+      if (parsedIntent == null) {
+        return false
+      }
+
+      val fallbackUrl = parsedIntent.getStringExtra(INTENT_FALLBACK_URL)
+      if (fallbackUrl != null) {
+        view.loadUrl(fallbackUrl)
+        return true
+      }
+
+      val packageName = parsedIntent.`package`
+      if (packageName != null) {
+        startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(URI_SCHEME_MARKET + packageName)))
+        return true
+      }
+      return false
+    }
+  }
 }
